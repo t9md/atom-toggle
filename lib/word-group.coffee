@@ -10,8 +10,7 @@ module.exports =
     ['not'   , '']
     ['on'    , 'off']
     ['in'    , 'out']
-    ['one'   , 'two'   , 'three']
-  ],
+  ]
   'source.coffee': [
     ['this', '@']
     ['is'  , 'isnt']

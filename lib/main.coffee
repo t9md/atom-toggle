@@ -4,8 +4,29 @@ _    = require 'underscore-plus'
 CSON = require 'season'
 fs   = require 'fs-plus'
 
-wordGroup = require './word-group'
-
+userConfigTemplate = """
+# '*' is wildcard scope, which is always searched finally.
+#
+# '*': [
+#   ['yes'   , 'no']
+#   ['up'    , 'down']
+#   ['right' , 'left']
+#   ['true'  , 'false']
+#   ['high'  , 'low']
+#   ['column', 'row']
+#   ['and'   , 'or']
+#   ['not'   , '']
+#   ['on'    , 'off']
+#   ['in'    , 'out']
+#   ['one'   , 'two'   , 'three']
+#   ['bar'   , 'bar']
+# ],
+# 'source.coffee': [
+#   ['this', '@']
+#   ['is'  , 'isnt']
+#   ['if'  , 'unless']
+# ]
+"""
 
 Config =
   configPath:
@@ -13,92 +34,123 @@ Config =
     type: 'string'
     default: path.join(atom.getConfigDirPath(), 'toggle.cson')
     description: 'filePath for words definitions'
+  useDefaultWordGroup:
+    order: 2
+    type: 'boolean'
+    default: true
 
 module.exports =
   disposables: null
-  scopedWordGroup: {}
+  userWordGroup: null
+  defaultWordGroup: null
   config: Config
-  hooks: {}
 
   activate: (state) ->
     @disposables = new CompositeDisposable
-
     @disposables.add atom.commands.add 'atom-workspace',
-      'toggle:toggle': => @toggle()
-      'toggle:debug':  => @debug()
-      'toggle:reload': => @readConfig()
-
-    @registerWords = (words) =>
-      @scopedWordGroup = words
-
-    @registerHook = (scope, hook) =>
-      @hooks[scope] = hook
+      'toggle:here':        => @toggleHere()
+      'toggle:there':       => @toggleThere()
+      'toggle:open-config': => @openConfig()
+      # 'toggle:readConfig': => @readConfig()
 
   deactivate: ->
     @disposables.dispose()
 
   serialize: ->
 
-  debug: ->
-    console.log @scopedWordGroup
-
   detectCursorScope: (cursor) ->
     supportedScopeNames = _.pluck(atom.grammars.getGrammars(), 'scopeName')
+
     scopesArray = cursor.getScopeDescriptor().getScopesArray()
-    scope = _.detect scopesArray.reverse(), (scope) ->
-      scope in supportedScopeNames
+    scope = _.detect scopesArray.reverse(), (scope) -> scope in supportedScopeNames
     scope
 
+  openConfig: ->
+    filePath = @getConfigPath()
+    fistOpen = not fs.existsSync(filePath)
+    atom.workspace.open(@getConfigPath()).done (editor) =>
+      if fistOpen
+        editor.setText(userConfigTemplate)
+        editor.save()
+      @reloadUserWordGroupOnSave(editor)
 
-  isExistsHook: (scope) ->
-    @hooks[scope]
+  getConfigPath: ->
+    fs.normalize(atom.config.get('toggle.configPath'))
+
+  reloadUserWordGroupOnSave: (editor) ->
+    @disposables = editor.onDidSave =>
+      @userWordGroup = @readConfig()
+
+  getUserWordGroup: ->
+    @userWordGroup ?= @readConfig()
+
+  getDefaultWordGroup: ->
+    if atom.config.get('toggle.useDefaultWordGroup')
+      @defaultWordGroup ?= require './word-group'
+    else
+      {}
 
   readConfig: ->
-    filePath = fs.normalize(atom.config.get('toggle.configPath'))
+    filePath = @getConfigPath()
+    return {} unless fs.existsSync(filePath)
 
-    if fs.existsSync filePath
+    try
       config = CSON.readFileSync(filePath)
-    else
-      message = "[toggle] file #{filePath} not exists"
-      options = {}
-        # detail: error.message
+      return (config or {})
+    catch error
+      message = '[toggle] config file has error'
+      options =
+        detail: error.message
       atom.notifications.addError message, options
 
   getWord: (word, scope) ->
-    if @isExistsHook(scope)
-      event =
-        # bufferLine: cursor.getCurrentBufferLine()
-        word: word
+    defaultWordGroup = @getDefaultWordGroup()
+    userWordGroup    = @getUserWordGroup()
 
-      newWord = @hooks[scope](event)
-      return newWord if newWord?
+    for scope in [scope, '*']
+      for wordGroup in [userWordGroup, defaultWordGroup] when wordGroup[scope]
+        words = _.detect(wordGroup[scope], (words) -> word in words)
+        if words?
+          index = words.indexOf(word)
+          nextIndex = index + 1
+          nextIndex = 0 if nextIndex is words.length
+          return words[nextIndex]
 
-    wordGroup = []
-    if @scopedWordGroup[scope]
-      wordGroup = wordGroup.concat @scopedWordGroup[scope]
-    wordGroup = wordGroup.concat atom.config.get('toggle.wordGroup')
-
-    words = _.detect(wordGroup, (words) -> word in words)
-    return null unless words
-    index = words.indexOf(word)
-
-    nextIndex = index + 1
-    if nextIndex is words.length
-      nextIndex = 0
+    return null
 
   toggleWord: (cursor) ->
-
     range = cursor.getCurrentWordBufferRange()
     word = cursor.editor.getTextInBufferRange range
     scope = @detectCursorScope(cursor)
     newWord = @getWord word, scope
     if newWord?
       cursor.editor.setTextInBufferRange(range, newWord)
+      return true
+    else
+      return false
 
-  toggle: ->
+  toggle: (cursor) ->
+    position = cursor.getBufferPosition()
+    if @toggleWord(cursor)
+      cursor.setBufferPosition(position)
+      return true
+    else
+      return false
+
+  toggleHere: ->
     return unless editor = atom.workspace.getActiveTextEditor()
     editor.transact =>
-      for cursor in editor.getCursors()
-        position = cursor.getBufferPosition()
-        @toggleWord(cursor)
-        cursor.setBufferPosition(position)
+      @toggle(cursor) for cursor in editor.getCursors()
+
+  toggleThere: ->
+    return unless editor = atom.workspace.getActiveTextEditor()
+
+    cursor   = editor.getLastCursor()
+    position = cursor.getBufferPosition()
+    until (cursor.getBufferRow() isnt position.row) or cursor.isAtEndOfLine()
+      if @toggle(cursor)
+        # return if
+        break
+      else
+        cursor.moveToBeginningOfNextWord()
+    cursor.setBufferPosition(position)
