@@ -20,7 +20,7 @@ e.g.
 
 ```coffeescript
 'atom-text-editor:not([mini])':
-  'ctrl-t': 'try:paste'
+  'ctrl--': 'try:paste'
 ```
 
 * [vim-mode](https://atom.io/packages/vim-mode)?.
