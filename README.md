@@ -1,23 +1,29 @@
 # Toggle
 
-Toggle word at cursor
+Toggle word
+ - at cursor
+ - on current line even without changing cursor position.
 
-![gif](https://raw.githubusercontent.com/t9md/t9md/846644d6d84621ec8d2b2405d1b0059c9a357714/img/atom-toggle.gif)
+![gif](https://raw.githubusercontent.com/t9md/t9md/b27642cef4eb1bb44aef08555f3cbc6c84922d00/img/atom-toggle.gif)
 
 # Features
 
-* Toggle word under cursor to next word in wordGroup.
+* Toggle word under cursor(`toggle:here`) to next word in wordGroup.
+* Toggle word on current line with(`toggle:visit`) or without(`toggle:there`) changing cursor position.
 * User configurable wordGroup.
+* Use cursor position's scope(usefull in like `coffeescript` in `gfm`).
 * Scope specific and default(`*`) wordGroup.
-* User cursor position's scope(usefull in like `coffeescript` in `gfm`).
-* Auto reload user configuration on save.
+* Open user configration(`toggle:open-config`), auto reload on save.
 * Work with multiple cursor.
+* You can disable default wordGroup completely.
+* You can disable default wordGroup for specific scope.
 
 # Commands
 
 * `toggle:here`: toggle word under cursor.
-* `toggle:there`: toggle word under cursor.
-* `toggle:open-config`: open user's word group configuration file.
+* `toggle:there`: toggle word on current line without changing cursor position.
+* `toggle:visit`: toggle word on current line with visiting toggled word.
+* `toggle:open-config`: open user's wordGroup configuration file.
 
 # Keymap
 
@@ -29,14 +35,14 @@ e.g.
 
 ```coffeescript
 'atom-text-editor:not([mini])':
-  'ctrl--': 'toggle:here'
+  'ctrl--': 'toggle:there'
 ```
 
 * [vim-mode](https://atom.io/packages/vim-mode)?.
 
 ```coffeescript
 'atom-text-editor.vim-mode.command-mode':
-  '-': 'toggle:here'
+  '-': 'toggle:there'
 ```
 
 # Configuration
@@ -72,5 +78,5 @@ e.g.
 # TODO
 * [x] Support language specific keyword handling
 * [x] Disable default words group by configuration.
-* [ ] `toggle:there` to go and toggle.
+* [x] Toggle without changing cursor position.
 * [ ] Improve default words group.

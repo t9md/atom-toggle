@@ -7,7 +7,6 @@ module.exports =
     ['high'  , 'low']
     ['column', 'row']
     ['and'   , 'or']
-    ['not'   , '']
     ['on'    , 'off']
     ['in'    , 'out']
   ]
