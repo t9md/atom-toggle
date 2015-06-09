@@ -139,7 +139,7 @@ module.exports =
     word    = cursor.editor.getTextInBufferRange range
     scope   = @detectCursorScope(cursor)
     newWord = @getWord word, scope
-    if newWord? # [NOTE] Might be empty string.
+    if newWord? and (newWord isnt word) # [NOTE] Might be empty string.
       position = cursor.getBufferPosition()
       cursor.editor.setTextInBufferRange range, newWord
       cursor.setBufferPosition position
@@ -164,8 +164,16 @@ module.exports =
       else
         found = null
         orignalRow = cursor.getBufferRow()
-        until (cursor.getBufferRow() isnt orignalRow) or cursor.isAtEndOfLine()
+
+        loop
           break if found = @toggleWord(cursor)
+
+          beforePoint = cursor.getBufferPosition()
           cursor.moveToBeginningOfNextWord()
+          afterPoint = cursor.getBufferPosition()
+
+          if (beforePoint.row isnt afterPoint.row) or
+              beforePoint.isEqual(afterPoint)
+            break
 
         (not found) or options.restoreCursor
