@@ -1,0 +1,17 @@
+{
+  "name": "toggle",
+  "main": "./lib/main",
+  "version": "0.0.0",
+  "description": "Toggle word at cursor",
+  "repository": "https://github.com/t9md/atom-toggle",
+  "activationCommands": {
+    "atom-workspace": "toggle:toggle"
+  },
+  "license": "MIT",
+  "engines": {
+    "atom": ">=0.174.0 <2.0.0"
+  },
+  "dependencies": {
+    "underscore-plus": "^1.6.6"
+  }
+}

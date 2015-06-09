@@ -2,6 +2,8 @@
 
 Toggle word at cursor
 
+![gif](https://raw.githubusercontent.com/t9md/t9md/846644d6d84621ec8d2b2405d1b0059c9a357714/img/atom-toggle.gif)
+
 # Development state
 
 Alpha
@@ -36,4 +38,4 @@ e.g.
 
 # TODO
 * [ ] Support language specific keyword handling
-* [ ] Customize toggle function by user's function.
+* [ ] Customizable toggle behavior by user function.
