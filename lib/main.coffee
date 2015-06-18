@@ -1,8 +1,9 @@
 {CompositeDisposable} = require 'atom'
-path = require 'path'
 _    = require 'underscore-plus'
-CSON = require 'season'
 fs   = require 'fs-plus'
+CSON = null
+
+settings = require './settings'
 
 userConfigTemplate = """
 # '*' is wildcard which is always searched finally.
@@ -27,29 +28,12 @@ userConfigTemplate = """
 # ]
 """
 
-Config =
-  configPath:
-    order: 1
-    type: 'string'
-    default: path.join(atom.getConfigDirPath(), 'toggle.cson')
-    description: 'filePath for words definitions'
-  useDefaultWordGroup:
-    order: 2
-    type: 'boolean'
-    default: true
-  defaultWordGroupExcludeScope:
-    order: 3
-    type: 'array'
-    default: []
-    items:
-      type: 'string'
-    description: 'Default wordGrop is not used for scope in this list'
-
 module.exports =
   disposables: null
   userWordGroup: null
   defaultWordGroup: null
-  config: Config
+  flasher: null
+  config: settings.config
 
   activate: (state) ->
     @disposables = new CompositeDisposable
@@ -81,7 +65,7 @@ module.exports =
       @reloadUserWordGroupOnSave(editor)
 
   getConfigPath: ->
-    fs.normalize(atom.config.get('toggle.configPath'))
+    fs.normalize settings.get('configPath')
 
   reloadUserWordGroupOnSave: (editor) ->
     @disposables = editor.onDidSave =>
@@ -92,7 +76,7 @@ module.exports =
     # @userWordGroup.slice()
 
   getDefaultWordGroup: ->
-    if atom.config.get('toggle.useDefaultWordGroup')
+    if settings.get('useDefaultWordGroup')
       @defaultWordGroup ?= require './word-group'
     else
       {}
@@ -102,6 +86,7 @@ module.exports =
     return {} unless fs.existsSync(filePath)
 
     try
+      CSON ?= require 'season'
       config = CSON.readFileSync(filePath)
       return (config or {})
     catch error
@@ -114,6 +99,9 @@ module.exports =
     console.log @getDefaultWordGroup()
     console.log @getUserWordGroup()
 
+  getFlasher: ->
+    @flasher ?= require './flasher'
+
   getEditor: ->
     atom.workspace.getActiveTextEditor()
 
@@ -123,7 +111,7 @@ module.exports =
 
     for _scope in [scope, '*']
       wordGroups = [userWordGroup[_scope]]
-      unless (_scope in atom.config.get('toggle.defaultWordGroupExcludeScope'))
+      unless (_scope in settings.get('defaultWordGroupExcludeScope'))
         wordGroups.push defaultWordGroup[_scope]
       wordGroups = _.filter wordGroups, (e) -> _.isArray(e)
 
@@ -143,6 +131,14 @@ module.exports =
     scope   = @detectCursorScope(cursor)
     newWord = @getWord word, scope
     if newWord? and (newWord isnt word) # [NOTE] Might be empty string.
+      if settings.get('flashOnToggle')
+        editor = cursor.editor
+        marker = editor.markBufferRange range,
+          invalidate: 'never'
+          persistent: false
+        range = marker.getBufferRange()
+        @getFlasher().register(editor, marker)
+
       position = cursor.getBufferPosition()
       cursor.editor.setTextInBufferRange range, newWord
       cursor.setBufferPosition position
@@ -157,6 +153,11 @@ module.exports =
         position = cursor.getBufferPosition()
         if callback(cursor)
           cursor.setBufferPosition(position)
+
+    return unless settings.get('flashOnToggle')
+    @getFlasher().flash
+      color:    settings.get('flashColor')
+      duration: settings.get('flashDurationMilliSeconds')
 
   toggle: (options={}) ->
     return unless editor = @getEditor()
