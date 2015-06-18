@@ -17,6 +17,7 @@ Toggle word
 * Work with multiple cursor.
 * You can disable default wordGroup completely.
 * You can disable default wordGroup for specific scope.
+* Flash toggled word. Customizable color, duration and disable it.
 
 # Commands
 
@@ -79,5 +80,5 @@ e.g.
 * [x] Support language specific keyword handling
 * [x] Disable default words group by configuration.
 * [x] Toggle without changing cursor position.
-* [ ] Highlight toggled word?
+* [x] Highlight toggled word?
 * [ ] Improve default words group.

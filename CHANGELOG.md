@@ -1,3 +1,6 @@
+## [PRE] 0.2.3 - Improve
+- README.md TODO update
+
 ## 0.2.2 - Improve
 - New Flash on toggle feature (now default).
 - Use atom-config-plus.
