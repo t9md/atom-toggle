@@ -114,6 +114,9 @@ module.exports =
     console.log @getDefaultWordGroup()
     console.log @getUserWordGroup()
 
+  getEditor: ->
+    atom.workspace.getActiveTextEditor()
+
   getWord: (word, scope) ->
     defaultWordGroup = @getDefaultWordGroup()
     userWordGroup    = @getUserWordGroup()
@@ -148,8 +151,7 @@ module.exports =
       return false
 
   # Edit for each cursor, to restore cursor position, return true from callback.
-  startEdit: (callback) ->
-    return unless editor = atom.workspace.getActiveTextEditor()
+  startEdit: (editor, callback) ->
     editor.transact =>
       for cursor in editor.getCursors()
         position = cursor.getBufferPosition()
@@ -157,16 +159,17 @@ module.exports =
           cursor.setBufferPosition(position)
 
   toggle: (options={}) ->
-    @startEdit (cursor) =>
+    return unless editor = @getEditor()
+    @startEdit editor, (cursor) =>
       if options.where is 'here'
         @toggleWord cursor
         return false
       else
         found = null
-        orignalRow = cursor.getBufferRow()
 
         loop
-          break if found = @toggleWord(cursor)
+          if found = @toggleWord(cursor)
+            break
 
           beforePoint = cursor.getBufferPosition()
           cursor.moveToBeginningOfNextWord()

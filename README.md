@@ -79,4 +79,5 @@ e.g.
 * [x] Support language specific keyword handling
 * [x] Disable default words group by configuration.
 * [x] Toggle without changing cursor position.
+* [ ] Highlight toggled word?
 * [ ] Improve default words group.
