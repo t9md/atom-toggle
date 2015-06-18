@@ -4,7 +4,7 @@ Toggle word
  - at cursor
  - on current line even without changing cursor position.
 
-![gif](https://raw.githubusercontent.com/t9md/t9md/b27642cef4eb1bb44aef08555f3cbc6c84922d00/img/atom-toggle.gif)
+![gif](https://raw.githubusercontent.com/t9md/t9md/1c92b38b8e1e8c2fd592f3befcd673f896246271/img/atom-toggle.gif)
 
 # Features
 
