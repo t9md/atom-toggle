@@ -1,8 +1,9 @@
-## [PRE] 0.2.2 - Improve
-- new Flash on toggle feature (now default)
-- use atom-config-plus
-- use `activationCommands` for faster startup time.
-- Refactoring
+## 0.2.2 - Improve
+- New Flash on toggle feature (now default).
+- Use atom-config-plus.
+- Use `activationCommands` for faster startup time..
+- Update gif.
+- Refactoring.
 
 ## 0.2.1 - Fix, Improve
 - [BUG] Infinit loop at EOF.
