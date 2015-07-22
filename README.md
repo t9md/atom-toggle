@@ -42,7 +42,7 @@ e.g.
 * [vim-mode](https://atom.io/packages/vim-mode)?.
 
 ```coffeescript
-'atom-text-editor.vim-mode.command-mode':
+'atom-text-editor.vim-mode.normal-mode':
   '-': 'toggle:there'
 ```
 

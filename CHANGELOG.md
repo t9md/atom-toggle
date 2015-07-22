@@ -1,5 +1,6 @@
-## [PRE] 0.2.3 - Improve
+## 0.2.3 - Improve
 - README.md TODO update
+- Update readme to follow vim-mode's command-mode to normal-mode
 
 ## 0.2.2 - Improve
 - New Flash on toggle feature (now default).
