@@ -17,6 +17,8 @@ wordGroups =
     ['&'     , '|']
     ['first' , 'last']
     ['=='    , '!=']
+    ['enable', 'disable']
+    ['enabled', 'disabled']
   ]
   'source.coffee': [
     ['this', '@']
