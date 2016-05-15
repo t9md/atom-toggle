@@ -40,7 +40,7 @@ module.exports =
       'toggle:here': => @toggle(where: 'here')
       'toggle:visit': => @toggle(restoreCursor: false)
       'toggle:there': => @toggle(restoreCursor: true)
-      'toggle:open-config': => @openConfig()
+      'toggle:open-config': => @openUserConfig()
 
   deactivate: ->
     @subscriptions.dispose()
@@ -49,17 +49,15 @@ module.exports =
   subscribe: (arg) ->
     @subscriptions.add(arg)
 
-  detectCursorScope: (cursor) ->
-    supportedScopeNames = _.pluck(atom.grammars.getGrammars(), 'scopeName')
-
-    scopesArray = cursor.getScopeDescriptor().getScopesArray()
-    scope = _.detect scopesArray.reverse(), (scope) -> scope in supportedScopeNames
-    scope
+  getScopeNameAtCursor: (cursor) ->
+    scopeNames = _.pluck(atom.grammars.getGrammars(), 'scopeName')
+    scopes = cursor.getScopeDescriptor().getScopesArray().reverse()
+    _.detect(scopes, (scope) -> scope in scopeNames)
 
   getUserConfigPath: ->
     fs.normalize(settings.get('configPath'))
 
-  openConfig: ->
+  openUserConfig: ->
     filePath = @getUserConfigPath()
     atom.workspace.open(filePath).then (editor) =>
       unless fs.existsSync(filePath)
@@ -91,10 +89,7 @@ module.exports =
       options =
         detail: error.message
       atom.notifications.addError message, options
-
-  debug:  ->
-    console.log @getDefaultWordGroup()
-    console.log @getUserWordGroup()
+    {}
 
   getFlasher: ->
     @flasher ?= require './flasher'
@@ -121,9 +116,9 @@ module.exports =
 
   toggleWord: (cursor) ->
     range = cursor.getCurrentWordBufferRange()
-    word = cursor.editor.getTextInBufferRange range
-    scope = @detectCursorScope(cursor)
-    newWord = @getWord word, scope
+    word = cursor.editor.getTextInBufferRange(range)
+    scope = @getScopeNameAtCursor(cursor)
+    newWord = @getWord(word, scope)
     if newWord? and (newWord isnt word) # [NOTE] Might be empty string.
       if settings.get('flashOnToggle')
         editor = cursor.editor
@@ -134,31 +129,35 @@ module.exports =
         @getFlasher().register(editor, marker)
 
       position = cursor.getBufferPosition()
-      cursor.editor.setTextInBufferRange range, newWord
-      cursor.setBufferPosition position
+      cursor.editor.setTextInBufferRange(range, newWord)
+      cursor.setBufferPosition(position)
       return true
     else
       return false
 
   # Edit for each cursor, to restore cursor position, return true from callback.
-  startEdit: (editor, callback) ->
+  startEdit: (editor, fn) ->
     editor.transact ->
       for cursor in editor.getCursors()
         position = cursor.getBufferPosition()
-        if callback(cursor)
+        if fn(cursor)
           cursor.setBufferPosition(position)
 
-    return unless settings.get('flashOnToggle')
-    @getFlasher().flash
-      class: 'toggle-flash'
-      duration: settings.get('flashDurationMilliSeconds')
+    if settings.get('flashOnToggle')
+      @getFlasher().flash
+        class: 'toggle-flash'
+        duration: settings.get('flashDurationMilliSeconds')
 
+  # options
+  # - where: ['here']
+  # - restoreCursor: [true, false]
   toggle: (options={}) ->
     editor = atom.workspace.getActiveTextEditor()
+    {where, restoreCursor} = options
     return unless editor
     @startEdit editor, (cursor) =>
-      if options.where is 'here'
-        @toggleWord cursor
+      if where is 'here'
+        @toggleWord(cursor)
         return false
       else
         found = null
@@ -175,4 +174,4 @@ module.exports =
               beforePoint.isEqual(afterPoint)
             break
 
-        (not found) or options.restoreCursor
+        (not found) or restoreCursor
