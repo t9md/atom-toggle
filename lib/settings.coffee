@@ -33,5 +33,5 @@ module.exports = new Settings 'toggle',
   flashDurationMilliSeconds:
     order: 12
     type: 'integer'
-    default: 300
+    default: 150
     description: "Duration for flash"

@@ -3,6 +3,9 @@ _    = require 'underscore-plus'
 fs   = require 'fs-plus'
 CSON = null
 
+{inspect} = require 'util'
+p = (args...) -> console.log inspect(args...)
+
 settings = require './settings'
 
 userConfigTemplate = """
@@ -31,7 +34,6 @@ userConfigTemplate = """
 module.exports =
   userWordGroup: null
   defaultWordGroup: null
-  flasher: null
   config: settings.config
 
   activate: (state) ->
@@ -59,23 +61,32 @@ module.exports =
 
   openUserConfig: ->
     filePath = @getUserConfigPath()
+    disposable = null
     atom.workspace.open(filePath).then (editor) =>
       unless fs.existsSync(filePath)
         # First time!
         editor.setText(userConfigTemplate)
         editor.save()
 
-      @subscribe editor.onDidSave =>
+      disposable = editor.onDidSave =>
         @userWordGroup = @readConfig()
+      editor.onDidDestroy ->
+        disposable.dispose()
 
   getUserWordGroup: ->
     @userWordGroup ?= @readConfig()
+
+  getUserWordGroupForScope: (scopeName) ->
+    @getUserWordGroup()[scopeName] ? []
 
   getDefaultWordGroup: ->
     if settings.get('useDefaultWordGroup')
       @defaultWordGroup ?= require './word-group'
     else
       {}
+
+  getDefaultWordGroupForScope: (scopeName) ->
+    @getDefaultWordGroup()[scopeName] ? []
 
   readConfig: ->
     filePath = @getUserConfigPath()
@@ -91,87 +102,55 @@ module.exports =
       atom.notifications.addError message, options
     {}
 
-  getFlasher: ->
-    @flasher ?= require './flasher'
+  getWord: (word, scopeName) ->
+    findWord = (word, wordGroups) ->
+      for wordGroup in wordGroups when (index = wordGroup.indexOf(word)) >= 0
+        index += 1
+        index = 0 if index >= wordGroup.length
+        return wordGroup[index]
 
-  getWord: (word, scope) ->
-    defaultWordGroup = @getDefaultWordGroup()
-    userWordGroup = @getUserWordGroup()
+    if newWord = findWord(word, @getUserWordGroupForScope(scopeName))
+      return newWord
 
-    for _scope in [scope, '*']
-      wordGroups = [userWordGroup[_scope]]
-      unless (_scope in settings.get('defaultWordGroupExcludeScope'))
-        wordGroups.push defaultWordGroup[_scope]
-      wordGroups = _.filter wordGroups, (e) -> _.isArray(e)
+    unless scopeName in settings.get('defaultWordGroupExcludeScope')
+      if newWord = findWord(word, @getDefaultWordGroupForScope(scopeName))
+        return newWord
 
-      for wordGroup in wordGroups
-        words = _.detect(wordGroup, (words) -> word in words)
-        if words?
-          index = words.indexOf(word)
-          nextIndex = index + 1
-          nextIndex = 0 if nextIndex is words.length
-          return words[nextIndex]
+  flashRange: (range) ->
+    flashDisposable?.dispose()
+    marker = @editor.markBufferRange(range)
+    decorateOptions = {type: 'highlight', class: 'toggle-flash'}
+    @editor.decorateMarker(marker, decorateOptions)
 
-    return null
+    timeout = settings.get('flashDurationMilliSeconds')
+    setTimeout ->
+      marker.destroy()
+    , timeout
 
-  toggleWord: (cursor) ->
-    range = cursor.getCurrentWordBufferRange()
-    word = cursor.editor.getTextInBufferRange(range)
-    scope = @getScopeNameAtCursor(cursor)
-    newWord = @getWord(word, scope)
-    if newWord? and (newWord isnt word) # [NOTE] Might be empty string.
-      if settings.get('flashOnToggle')
-        editor = cursor.editor
-        marker = editor.markBufferRange range,
-          invalidate: 'never'
-          persistent: false
-        range = marker.getBufferRange()
-        @getFlasher().register(editor, marker)
+  toggleWord: (selection) ->
+    cursor = selection.cursor
+    originalPoint = cursor.getBufferPosition()
+    selection.selectWord()
 
-      position = cursor.getBufferPosition()
-      cursor.editor.setTextInBufferRange(range, newWord)
-      cursor.setBufferPosition(position)
-      return true
+    text = selection.getText()
+    for scopeName in [@getScopeNameAtCursor(cursor), '*']
+      if (newText = @getWord(text, scopeName))?
+        break
+
+    p(newText)
+    if newText?
+      range = selection.insertText(newText)
+      cursor.setBufferPosition(range.start)
+      @flashRange(range)
     else
-      return false
-
-  # Edit for each cursor, to restore cursor position, return true from callback.
-  startEdit: (editor, fn) ->
-    editor.transact ->
-      for cursor in editor.getCursors()
-        position = cursor.getBufferPosition()
-        if fn(cursor)
-          cursor.setBufferPosition(position)
-
-    if settings.get('flashOnToggle')
-      @getFlasher().flash
-        class: 'toggle-flash'
-        duration: settings.get('flashDurationMilliSeconds')
+      # Restore cursor position.
+      cursor.setBufferPosition(originalPoint)
 
   # options
   # - where: ['here']
   # - restoreCursor: [true, false]
   toggle: (options={}) ->
-    editor = atom.workspace.getActiveTextEditor()
-    {where, restoreCursor} = options
-    return unless editor
-    @startEdit editor, (cursor) =>
-      if where is 'here'
-        @toggleWord(cursor)
-        return false
-      else
-        found = null
-
-        loop
-          if found = @toggleWord(cursor)
-            break
-
-          beforePoint = cursor.getBufferPosition()
-          cursor.moveToBeginningOfNextWord()
-          afterPoint = cursor.getBufferPosition()
-
-          if (beforePoint.row isnt afterPoint.row) or
-              beforePoint.isEqual(afterPoint)
-            break
-
-        (not found) or restoreCursor
+    @editor = atom.workspace.getActiveTextEditor()
+    @editor.transact =>
+      for selection in @editor.getSelections()
+        @toggleWord(selection)
