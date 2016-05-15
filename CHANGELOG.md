@@ -1,3 +1,9 @@
+## 0.3.0
+- Remove `flashOnToggle` setting.
+- Refactoring: rewrite all part of codes.
+- Improve accuracy for picking word under cursor.
+- Remove support of word including special char. Now word must match `\w+`.
+
 ## 0.2.3 - Improve
 - README.md TODO update
 - Update readme to follow vim-mode's command-mode to normal-mode

@@ -77,6 +77,7 @@ module.exports =
         @userWordGroup = @readUserConfig()
       editor.onDidDestroy ->
         disposable.dispose()
+        disposable = null
 
   getUserConfig: (scopeName) ->
     @userWordGroup ?= @readUserConfig()
