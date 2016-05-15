@@ -1,6 +1,5 @@
 {CompositeDisposable} = require 'atom'
-_    = require 'underscore-plus'
-fs   = require 'fs-plus'
+fs = require 'fs-plus'
 CSON = null
 
 {inspect} = require 'util'
@@ -9,8 +8,15 @@ p = (args...) -> console.log inspect(args...)
 settings = require './settings'
 
 userConfigTemplate = """
-# '*' is wildcard which is always searched finally.
+# Each word must match reglar expression '\w+'.
+# So follwoing settings is invalid.
+# e.g-1) both '<' and '>' not match '\w+'
+#  ['<', '>']
 #
+# e.g-2) OK(this -> @), NG(@ -> this) `@` not match '\w+'
+#  ['this', '@']
+#
+# '*' is wildcard which is always searched finally.
 # '*': [
 #   ['yes'   , 'no']
 #   ['up'    , 'down']
@@ -25,23 +31,21 @@ userConfigTemplate = """
 #   ['one'   , 'two'   , 'three']
 # ],
 # 'source.coffee': [
-#   ['this', '@']
 #   ['is'  , 'isnt']
 #   ['if'  , 'unless']
 # ]
 """
 
 module.exports =
-  userWordGroup: null
-  defaultWordGroup: null
   config: settings.config
 
   activate: (state) ->
     @subscriptions = new CompositeDisposable
+    settings.notifyAndDelete('flashOnToggle')
     @subscribe atom.commands.add 'atom-workspace',
-      'toggle:here': => @toggle(where: 'here')
-      'toggle:visit': => @toggle(restoreCursor: false)
-      'toggle:there': => @toggle(restoreCursor: true)
+      'toggle:here': => @toggle('here')
+      'toggle:visit': => @toggle('visit')
+      'toggle:there': => @toggle('there')
       'toggle:open-config': => @openUserConfig()
 
   deactivate: ->
@@ -52,9 +56,10 @@ module.exports =
     @subscriptions.add(arg)
 
   getScopeNameAtCursor: (cursor) ->
-    scopeNames = _.pluck(atom.grammars.getGrammars(), 'scopeName')
+    scopeNames = (g.scopeName for g in atom.grammars.getGrammars())
     scopes = cursor.getScopeDescriptor().getScopesArray().reverse()
-    _.detect(scopes, (scope) -> scope in scopeNames)
+    for scope in scopes when scope in scopeNames
+      return scope
 
   getUserConfigPath: ->
     fs.normalize(settings.get('configPath'))
@@ -69,26 +74,22 @@ module.exports =
         editor.save()
 
       disposable = editor.onDidSave =>
-        @userWordGroup = @readConfig()
+        @userWordGroup = @readUserConfig()
       editor.onDidDestroy ->
         disposable.dispose()
 
-  getUserWordGroup: ->
-    @userWordGroup ?= @readConfig()
+  getUserConfig: (scopeName) ->
+    @userWordGroup ?= @readUserConfig()
+    @userWordGroup[scopeName] ? []
 
-  getUserWordGroupForScope: (scopeName) ->
-    @getUserWordGroup()[scopeName] ? []
-
-  getDefaultWordGroup: ->
+  getDefaultConfig: (scopeName) ->
     if settings.get('useDefaultWordGroup')
       @defaultWordGroup ?= require './word-group'
+      @defaultWordGroup[scopeName] ? []
     else
-      {}
+      []
 
-  getDefaultWordGroupForScope: (scopeName) ->
-    @getDefaultWordGroup()[scopeName] ? []
-
-  readConfig: ->
+  readUserConfig: ->
     filePath = @getUserConfigPath()
     return {} unless fs.existsSync(filePath)
 
@@ -102,55 +103,59 @@ module.exports =
       atom.notifications.addError message, options
     {}
 
-  getWord: (word, scopeName) ->
-    findWord = (word, wordGroups) ->
-      for wordGroup in wordGroups when (index = wordGroup.indexOf(word)) >= 0
-        index += 1
-        index = 0 if index >= wordGroup.length
-        return wordGroup[index]
+  getWord: (text, scopeName) ->
+    findWord = (text, setOfWords) ->
+      for words in setOfWords when (index = words.indexOf(text)) >= 0
+        index = (index + 1) % words.length
+        return words[index]
 
-    if newWord = findWord(word, @getUserWordGroupForScope(scopeName))
-      return newWord
+    if (newText = findWord(text, @getUserConfig(scopeName)))?
+      return newText
 
-    unless scopeName in settings.get('defaultWordGroupExcludeScope')
-      if newWord = findWord(word, @getDefaultWordGroupForScope(scopeName))
-        return newWord
+    if scopeName in settings.get('defaultWordGroupExcludeScope')
+      return null
+
+    if (newText = findWord(text, @getDefaultConfig(scopeName)))?
+      return newText
 
   flashRange: (range) ->
-    flashDisposable?.dispose()
     marker = @editor.markBufferRange(range)
     decorateOptions = {type: 'highlight', class: 'toggle-flash'}
     @editor.decorateMarker(marker, decorateOptions)
-
-    timeout = settings.get('flashDurationMilliSeconds')
     setTimeout ->
       marker.destroy()
-    , timeout
+    , settings.get('flashDurationMilliSeconds')
 
-  toggleWord: (selection) ->
-    cursor = selection.cursor
-    originalPoint = cursor.getBufferPosition()
-    selection.selectWord()
+  toggleWord: (cursor, where) ->
+    scopeNameAtCursor = @getScopeNameAtCursor(cursor)
 
-    text = selection.getText()
-    for scopeName in [@getScopeNameAtCursor(cursor), '*']
-      if (newText = @getWord(text, scopeName))?
-        break
+    pattern = /(\b\w+\b)/g
+    cursorPosition = cursor.getBufferPosition()
+    scanRange = @editor.bufferRangeForBufferRow(cursorPosition.row)
 
-    p(newText)
-    if newText?
-      range = selection.insertText(newText)
-      cursor.setBufferPosition(range.start)
-      @flashRange(range)
-    else
-      # Restore cursor position.
-      cursor.setBufferPosition(originalPoint)
+    isValidTarget = (range) ->
+      if where is 'here'
+        range.containsPoint(cursorPosition)
+      else
+        range.end.isGreaterThanOrEqual(cursorPosition)
+
+    @editor.scanInBufferRange pattern, scanRange, ({range, replace, matchText, stop, match}) =>
+      if isValidTarget(range)
+        for scopeName in [scopeNameAtCursor, '*']
+          if (newText = @getWord(matchText, scopeName))?
+            stop()
+            newRange = replace(newText)
+            newStart = newRange.start
+            @flashRange(newRange) if range.start.isGreaterThan(cursorPosition)
+            if (where in ['visit', 'here']) or newStart.isLessThan(cursorPosition)
+              cursor.setBufferPosition(newStart)
+
+            break
 
   # options
-  # - where: ['here']
-  # - restoreCursor: [true, false]
-  toggle: (options={}) ->
+  # - where: ['here', 'there', 'visit']
+  toggle: (where) ->
     @editor = atom.workspace.getActiveTextEditor()
     @editor.transact =>
-      for selection in @editor.getSelections()
-        @toggleWord(selection)
+      for cursor in @editor.getCursors()
+        @toggleWord(cursor, where)

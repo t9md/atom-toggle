@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "fs-plus": "^2.8.1",
-    "season": "^5.2.0",
-    "underscore-plus": "^1.6.6"
+    "season": "^5.2.0"
   }
 }
