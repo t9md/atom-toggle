@@ -3,10 +3,10 @@ class Flasher
   @flashers: []
   constructor: (@editor, @marker) ->
 
-  flash: ({color, duration, persist}) ->
+  flash: ({class: className, duration, persist}) ->
     @decoration = @editor.decorateMarker @marker,
       type: 'highlight'
-      class: "toggle-#{color}"
+      class: className
 
     return if persist
 

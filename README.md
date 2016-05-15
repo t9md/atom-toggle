@@ -48,6 +48,8 @@ e.g.
 
 # Configuration
 
+### Add custom words
+
 ```coffeescript
 # '*' is wildcard scope, which is always searched as last resort.
 '*': [
@@ -69,6 +71,16 @@ e.g.
   ['is'  , 'isnt']
   ['if'  , 'unless']
 ]
+```
+
+### Flash color customization
+
+```less
+atom-text-editor::shadow {
+  .toggle-flash .region {
+    background-color: @syntax-selection-flash-color;
+  }
+}
 ```
 
 # Similar package for other text editors.

@@ -1,7 +1,20 @@
 path = require 'path'
-ConfigPlus = require 'atom-config-plus'
+class Settings
+  constructor: (@scope, @config) ->
 
-config =
+  get: (param) ->
+    atom.config.get "#{@scope}.#{param}"
+
+  set: (param, value) ->
+    atom.config.set "#{@scope}.#{param}", value
+
+  toggle: (param) ->
+    @set(param, not @get(param))
+
+  observe: (param, fn) ->
+    atom.config.observe "#{@scope}.#{param}", fn
+
+module.exports = new Settings 'toggle',
   configPath:
     order: 1
     type: 'string'
@@ -28,11 +41,3 @@ config =
     type: 'integer'
     default: 300
     description: "Duration for flash"
-  flashColor:
-    order: 13
-    type: 'string'
-    default: 'error'
-    enum: ['info', 'success', 'warning', 'error', 'highlight', 'selected']
-    description: 'Flash color. Correspoinding to @background-color-#{flashColor}: see `styleguide:show`'
-
-module.exports = new ConfigPlus('toggle', config)

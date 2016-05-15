@@ -156,7 +156,7 @@ module.exports =
 
     return unless settings.get('flashOnToggle')
     @getFlasher().flash
-      color:    settings.get('flashColor')
+      class: 'toggle-flash'
       duration: settings.get('flashDurationMilliSeconds')
 
   toggle: (options={}) ->
