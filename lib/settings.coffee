@@ -8,12 +8,6 @@ class Settings
   set: (param, value) ->
     atom.config.set "#{@scope}.#{param}", value
 
-  toggle: (param) ->
-    @set(param, not @get(param))
-
-  observe: (param, fn) ->
-    atom.config.observe "#{@scope}.#{param}", fn
-
 module.exports = new Settings 'toggle',
   configPath:
     order: 1

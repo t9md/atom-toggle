@@ -29,24 +29,25 @@ userConfigTemplate = """
 """
 
 module.exports =
-  disposables: null
   userWordGroup: null
   defaultWordGroup: null
   flasher: null
   config: settings.config
 
   activate: (state) ->
-    @disposables = new CompositeDisposable
-    @disposables.add atom.commands.add 'atom-workspace',
-      'toggle:here':        => @toggle(where: 'here')
-      'toggle:visit':       => @toggle(restoreCursor: false)
-      'toggle:there':       => @toggle(restoreCursor: true)
+    @subscriptions = new CompositeDisposable
+    @subscribe atom.commands.add 'atom-workspace',
+      'toggle:here': => @toggle(where: 'here')
+      'toggle:visit': => @toggle(restoreCursor: false)
+      'toggle:there': => @toggle(restoreCursor: true)
       'toggle:open-config': => @openConfig()
 
   deactivate: ->
-    @disposables.dispose()
+    @subscriptions.dispose()
+    @subscriptions = null
 
-  serialize: ->
+  subscribe: (arg) ->
+    @subscriptions.add(arg)
 
   detectCursorScope: (cursor) ->
     supportedScopeNames = _.pluck(atom.grammars.getGrammars(), 'scopeName')
@@ -55,25 +56,22 @@ module.exports =
     scope = _.detect scopesArray.reverse(), (scope) -> scope in supportedScopeNames
     scope
 
+  getUserConfigPath: ->
+    fs.normalize(settings.get('configPath'))
+
   openConfig: ->
-    filePath = @getConfigPath()
-    atom.workspace.open(filePath).done (editor) =>
+    filePath = @getUserConfigPath()
+    atom.workspace.open(filePath).then (editor) =>
       unless fs.existsSync(filePath)
         # First time!
         editor.setText(userConfigTemplate)
         editor.save()
-      @reloadUserWordGroupOnSave(editor)
 
-  getConfigPath: ->
-    fs.normalize settings.get('configPath')
-
-  reloadUserWordGroupOnSave: (editor) ->
-    @disposables = editor.onDidSave =>
-      @userWordGroup = @readConfig()
+      @subscribe editor.onDidSave =>
+        @userWordGroup = @readConfig()
 
   getUserWordGroup: ->
     @userWordGroup ?= @readConfig()
-    # @userWordGroup.slice()
 
   getDefaultWordGroup: ->
     if settings.get('useDefaultWordGroup')
@@ -82,13 +80,12 @@ module.exports =
       {}
 
   readConfig: ->
-    filePath = @getConfigPath()
+    filePath = @getUserConfigPath()
     return {} unless fs.existsSync(filePath)
 
     try
       CSON ?= require 'season'
-      config = CSON.readFileSync(filePath)
-      return (config or {})
+      return CSON.readFileSync(filePath) or {}
     catch error
       message = '[toggle] config file has error'
       options =
@@ -102,12 +99,9 @@ module.exports =
   getFlasher: ->
     @flasher ?= require './flasher'
 
-  getEditor: ->
-    atom.workspace.getActiveTextEditor()
-
   getWord: (word, scope) ->
     defaultWordGroup = @getDefaultWordGroup()
-    userWordGroup    = @getUserWordGroup()
+    userWordGroup = @getUserWordGroup()
 
     for _scope in [scope, '*']
       wordGroups = [userWordGroup[_scope]]
@@ -126,9 +120,9 @@ module.exports =
     return null
 
   toggleWord: (cursor) ->
-    range   = cursor.getCurrentWordBufferRange()
-    word    = cursor.editor.getTextInBufferRange range
-    scope   = @detectCursorScope(cursor)
+    range = cursor.getCurrentWordBufferRange()
+    word = cursor.editor.getTextInBufferRange range
+    scope = @detectCursorScope(cursor)
     newWord = @getWord word, scope
     if newWord? and (newWord isnt word) # [NOTE] Might be empty string.
       if settings.get('flashOnToggle')
@@ -148,7 +142,7 @@ module.exports =
 
   # Edit for each cursor, to restore cursor position, return true from callback.
   startEdit: (editor, callback) ->
-    editor.transact =>
+    editor.transact ->
       for cursor in editor.getCursors()
         position = cursor.getBufferPosition()
         if callback(cursor)
@@ -160,7 +154,8 @@ module.exports =
       duration: settings.get('flashDurationMilliSeconds')
 
   toggle: (options={}) ->
-    return unless editor = @getEditor()
+    editor = atom.workspace.getActiveTextEditor()
+    return unless editor
     @startEdit editor, (cursor) =>
       if options.where is 'here'
         @toggleWord cursor
