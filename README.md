@@ -34,7 +34,7 @@ e.g.
 # Limitation
 
 When this package search candidate word to be toggled from current line, it scan word with regular expression `/\b\w+\b/`.  
-So you can only toggle normal word that matches `\w+`.  
+So you can only toggle word matches `\w+` or `[A-Za-z0-9_]+`.  
 This mean you cannot set special character as toggle words e.g. `<`, `<=`.
 
 # Customization
