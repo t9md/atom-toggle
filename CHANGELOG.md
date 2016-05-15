@@ -1,5 +1,10 @@
+## 0.3.1:
+- Add notification for removal of `flashColor` setting.
+- Update gif in readme since it is based on old behavior when special char(`@`) is supported.
+
 ## 0.3.0
 - Remove `flashOnToggle` setting.
+- Remove `flashColor` setting.
 - Refactoring: rewrite all part of codes.
 - Improve accuracy for picking word under cursor.
 - Remove support of word including special char. Now word must match `\w+`.

@@ -22,7 +22,7 @@ userConfigTemplate = """
 #   ['high'  , 'low']
 #   ['column', 'row']
 #   ['and'   , 'or']
-#   ['not'   , '']
+#   ['not'   , ''] # just remove `not`
 #   ['on'    , 'off']
 #   ['in'    , 'out']
 #   ['one'   , 'two'   , 'three']
@@ -38,7 +38,7 @@ module.exports =
 
   activate: (state) ->
     @subscriptions = new CompositeDisposable
-    settings.notifyAndDelete('flashOnToggle')
+    settings.notifyAndDelete('flashOnToggle', 'flashColor')
     @subscribe atom.commands.add 'atom-workspace',
       'toggle:here': => @toggle('here')
       'toggle:visit': => @toggle('visit')

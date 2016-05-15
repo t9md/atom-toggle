@@ -2,7 +2,7 @@
 
 Toggle keyword
 
-![gif](https://raw.githubusercontent.com/t9md/t9md/1c92b38b8e1e8c2fd592f3befcd673f896246271/img/atom-toggle.gif)
+![gif](https://raw.githubusercontent.com/t9md/t9md/98d528c75fdc11e98c79e52404d3a195d6dcb0ee/img/atom-toggle.gif)
 
 # Commands
 
