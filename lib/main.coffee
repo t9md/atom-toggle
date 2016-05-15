@@ -2,9 +2,6 @@
 fs = require 'fs-plus'
 CSON = null
 
-{inspect} = require 'util'
-p = (args...) -> console.log inspect(args...)
-
 settings = require './settings'
 
 userConfigTemplate = """
