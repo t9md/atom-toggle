@@ -1,3 +1,6 @@
+## 0.3.2:
+- Update default wordGroup.
+
 ## 0.3.1:
 - Add notification for removal of `flashColor` setting.
 - Update gif in readme since it is based on old behavior when special char(`@`) is supported.
