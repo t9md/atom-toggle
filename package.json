@@ -19,5 +19,9 @@
   "dependencies": {
     "fs-plus": "^2.8.1",
     "season": "^5.2.0"
+  },
+  "scripts": {
+    "test": "apm test",
+    "watch": "fswatch -0 spec lib | xargs -0 -n1 -I{} apm test"
   }
 }
