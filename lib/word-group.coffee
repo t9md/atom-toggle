@@ -25,7 +25,7 @@ wordGroupForWeb = [
   ['max'       , 'min']
   ['ul'        , 'ol']
   ['class'     , 'id']
-  ['px'        , '%'          , 'em']
+  ['px'        , 'em']
   ['left'      , 'right']
   ['top'       , 'bottom']
   ['margin'    , 'padding']
