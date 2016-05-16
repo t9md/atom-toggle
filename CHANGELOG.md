@@ -1,3 +1,7 @@
+## 0.4.0:
+- Write spec
+- Bug fix: `defaultWordGroupExcludeScope` was not respected.
+
 ## 0.3.2:
 - Update default wordGroup.
 
