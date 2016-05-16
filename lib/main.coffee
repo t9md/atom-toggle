@@ -51,7 +51,8 @@ module.exports =
   subscribe: (arg) ->
     @subscriptions.add(arg)
 
-  getWord: (text, scopeName) ->
+  getWord: (text, scopeName, {lookupDefaultWordGroup}) ->
+    lookupDefaultWordGroup ?= false
     findWord = (text, setOfWords) ->
       for words in setOfWords when (index = words.indexOf(text)) >= 0
         return words[(index + 1) % words.length]
@@ -59,10 +60,9 @@ module.exports =
     if (newText = findWord(text, @getUserWordGroup(scopeName)))?
       return newText
 
-    if scopeName in settings.get('defaultWordGroupExcludeScope')
-      return null
+    return unless lookupDefaultWordGroup
 
-    if (newText = findWord(text, @getDefaultUserGroup(scopeName)))?
+    if (newText = findWord(text, @getDefaultWordGroup(scopeName)))?
       return newText
 
   # Where: ['here', 'there', 'visit']
@@ -75,11 +75,13 @@ module.exports =
     pattern = /\b\w+\b/g
     cursorPosition = cursor.getBufferPosition()
     scanRange = @editor.bufferRangeForBufferRow(cursorPosition.row)
-    scopeNames = [@getScopeNameAtCursor(cursor), '*']
+    scopeNameAtCursor = @getScopeNameAtCursor(cursor)
+    scopeNames = [scopeNameAtCursor, '*']
+    lookupDefaultWordGroup = scopeNameAtCursor not in settings.get('defaultWordGroupExcludeScope')
 
     @editor.scanInBufferRange pattern, scanRange, ({range, replace, matchText, stop, match}) =>
       return unless @isValidTarget(where, range, cursorPosition)
-      for scopeName in scopeNames when (newText = @getWord(matchText, scopeName))?
+      for scopeName in scopeNames when (newText = @getWord(matchText, scopeName, {lookupDefaultWordGroup}))?
         stop()
         newRange = replace(newText)
         newStart = newRange.start
@@ -126,7 +128,7 @@ module.exports =
     @userWordGroup ?= @readUserWordGroup()
     @userWordGroup[scopeName] ? []
 
-  getDefaultUserGroup: (scopeName) ->
+  getDefaultWordGroup: (scopeName) ->
     if settings.get('useDefaultWordGroup')
       @defaultWordGroup ?= require './word-group'
       @defaultWordGroup[scopeName] ? []

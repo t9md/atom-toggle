@@ -1,7 +1,12 @@
+
+path = require 'path'
+fs = require 'fs-plus'
+temp = require 'temp'
 # Main
 # -------------------------
 describe "toggle", ->
   [editor, editorElement, workspaceElement] = []
+  tempDirPath = fs.realpathSync(temp.mkdirSync('temp'))
   dispatchCommand = (command) ->
     atom.commands.dispatch(editorElement, command)
 
@@ -21,6 +26,7 @@ describe "toggle", ->
       atom.workspace.open()
 
     runs ->
+      jasmine.attachToDOM(workspaceElement)
       editor = atom.workspace.getActiveTextEditor()
       editorElement = atom.views.getView(editor)
       activationPromise = atom.packages.activatePackage("toggle")
@@ -85,14 +91,104 @@ describe "toggle", ->
       dispatchCommand('toggle:here')
       ensure(cursor: [1, 0], text: "['yes', 'no']\nup, down\n")
 
-  # describe "[config] defaultWordGroupExcludeScope", ->
-  #   beforeEach ->
-  #     dispatchCommand('toggle:open-config')
-  #
-  #     waitsForPromise ->
-  #     # editor.setText """
-  #     # ['yes', 'no']
-  #     # up, down\n
-  #     # """
-  #     # atom.config.set('toggle.useDefaultWordGroup', false)
-  # # describe "toggle:open-config", ->
+  describe "scope specific setting", ->
+    [coffeeGrammar, nullGrammar] = []
+    beforeEach ->
+      waitsForPromise ->
+        atom.packages.activatePackage('language-coffee-script')
+
+      runs ->
+        coffeeGrammar = atom.grammars.grammarForScopeName('source.coffee')
+        nullGrammar = atom.grammars.grammarForScopeName('text.plain.null-grammar')
+        editor.setText("yes, no")
+
+    describe "[config] defaultWordGroupExcludeScope", ->
+      beforeEach ->
+        atom.config.set('toggle.defaultWordGroupExcludeScope', ['source.coffee'])
+
+      it "don't lookup default word group, so nothing happen", ->
+        editor.setGrammar(coffeeGrammar)
+        editor.setCursorBufferPosition([0, 0])
+        dispatchCommand('toggle:here')
+        ensure(cursor: [0, 0], text: "yes, no")
+
+      it "lookup default word group when scopen not matches to defaultWordGroupExcludeScope", ->
+        editor.setGrammar(nullGrammar)
+        editor.setCursorBufferPosition([0, 0])
+        dispatchCommand('toggle:here')
+        ensure(cursor: [0, 0], text: "no, no")
+
+  describe "toggle:open-config", ->
+    [configEditor, configPath] = []
+
+    beforeEach ->
+      editor.setText """
+      hello
+      """
+
+      configPath = path.join(tempDirPath, "toggle.cson")
+      atom.config.set('toggle.configPath', configPath)
+      atom.commands.dispatch(workspaceElement, 'toggle:open-config')
+
+      runs ->
+        atom.workspace.onDidAddTextEditor ({textEditor}) ->
+          configEditor = textEditor
+
+      waitsFor ->
+        atom.workspace.getActiveTextEditor().getPath() is atom.config.get('toggle.configPath')
+
+    it "open file specified by 'toggle.configPath'", ->
+      configEditor.getPath() is atom.config.get('toggle.configPath')
+
+    it "automatically load user config on save", ->
+      atom.workspace.getActivePane().activateItem(editor)
+      editor.setCursorBufferPosition([0, 0])
+      dispatchCommand('toggle:here')
+      ensure(cursor: [0, 0], text: "hello")
+
+      configEditor.setText """
+      '*': [
+        ['hello', 'world']
+      ]
+      """
+      configEditor.save()
+      atom.workspace.getActivePane().activateItem(editor)
+      dispatchCommand('toggle:here')
+      ensure(cursor: [0, 0], text: "world")
+      dispatchCommand('toggle:here')
+      ensure(cursor: [0, 0], text: "hello")
+
+    describe "scope based word group", ->
+      [coffeeGrammar, nullGrammar] = []
+
+      beforeEach ->
+        atom.workspace.getActivePane().activateItem(editor)
+        configEditor.setText """
+        '*': [
+          ['hello', 'world']
+        ]
+        'source.coffee': [
+          ['coffee', 'tasty']
+        ]
+        """
+        configEditor.save()
+
+        waitsForPromise ->
+          atom.packages.activatePackage('language-coffee-script')
+
+        runs ->
+          coffeeGrammar = atom.grammars.grammarForScopeName('source.coffee')
+          nullGrammar = atom.grammars.grammarForScopeName('text.plain.null-grammar')
+          editor.setText("hello\ncoffee")
+          editor.setCursorBufferPosition([0, 0])
+          editor.addCursorAtBufferPosition([1, 0])
+
+      it "case: null grammar", ->
+        editor.setGrammar(nullGrammar)
+        dispatchCommand('toggle:here')
+        ensure(cursors: [[0, 0], [1, 0]], text: "world\ncoffee")
+
+      it "case: coffee grammar", ->
+        editor.setGrammar(coffeeGrammar)
+        dispatchCommand('toggle:here')
+        ensure(cursors: [[0, 0], [1, 0]], text: "world\ntasty")

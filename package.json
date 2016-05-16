@@ -23,5 +23,8 @@
   "scripts": {
     "test": "apm test",
     "watch": "fswatch -0 spec lib | xargs -0 -n1 -I{} apm test"
+  },
+  "devDependencies": {
+    "temp": "^0.8.3"
   }
 }
