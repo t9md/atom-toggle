@@ -51,11 +51,59 @@ module.exports =
   subscribe: (arg) ->
     @subscriptions.add(arg)
 
-  getScopeNameAtCursor: (cursor) ->
-    scopeNames = (g.scopeName for g in atom.grammars.getGrammars())
-    scopes = cursor.getScopeDescriptor().getScopesArray().reverse()
-    return scope for scope in scopes when scope in scopeNames
+  getWord: (text, scopeName) ->
+    findWord = (text, setOfWords) ->
+      for words in setOfWords when (index = words.indexOf(text)) >= 0
+        return words[(index + 1) % words.length]
 
+    if (newText = findWord(text, @getUserWordGroup(scopeName)))?
+      return newText
+
+    if scopeName in settings.get('defaultWordGroupExcludeScope')
+      return null
+
+    if (newText = findWord(text, @getDefaultUserGroup(scopeName)))?
+      return newText
+
+  # Where: ['here', 'there', 'visit']
+  toggle: (where) ->
+    @editor = atom.workspace.getActiveTextEditor()
+    @editor.transact =>
+      @toggleWord(cursor, where) for cursor in @editor.getCursors()
+
+  toggleWord: (cursor, where) ->
+    pattern = /\b\w+\b/g
+    cursorPosition = cursor.getBufferPosition()
+    scanRange = @editor.bufferRangeForBufferRow(cursorPosition.row)
+    scopeNames = [@getScopeNameAtCursor(cursor), '*']
+
+    @editor.scanInBufferRange pattern, scanRange, ({range, replace, matchText, stop, match}) =>
+      return unless @isValidTarget(where, range, cursorPosition)
+      for scopeName in scopeNames when (newText = @getWord(matchText, scopeName))?
+        stop()
+        newRange = replace(newText)
+        newStart = newRange.start
+        @flashRange(newRange) if range.start.isGreaterThan(cursorPosition)
+        if (where in ['visit', 'here']) or newStart.isLessThan(cursorPosition)
+          cursor.setBufferPosition(newStart)
+        break
+
+  isValidTarget: (where, range, point) ->
+    if where is 'here'
+      range.containsPoint(point)
+    else
+      range.end.isGreaterThanOrEqual(point)
+
+  flashRange: (range) ->
+    marker = @editor.markBufferRange(range)
+    @editor.decorateMarker(marker, {type: 'highlight', class: 'toggle-flash'})
+    timeout = settings.get('flashDurationMilliSeconds')
+    setTimeout ->
+      marker.destroy()
+    , timeout
+
+  # Word group
+  # -------------------------
   getUserWordGroupPath: ->
     fs.normalize(settings.get('configPath'))
 
@@ -93,59 +141,12 @@ module.exports =
       CSON ?= require 'season'
       return CSON.readFileSync(filePath) or {}
     catch error
-      message = '[toggle] config file has error'
-      options =
-        detail: error.message
-      atom.notifications.addError message, options
+      atom.notifications.addError('[toggle] config file has error', detail: error.message)
     {}
 
-  getWord: (text, scopeName) ->
-    findWord = (text, setOfWords) ->
-      for words in setOfWords when (index = words.indexOf(text)) >= 0
-        return words[(index + 1) % words.length]
-
-    if (newText = findWord(text, @getUserWordGroup(scopeName)))?
-      return newText
-
-    if scopeName in settings.get('defaultWordGroupExcludeScope')
-      return null
-
-    if (newText = findWord(text, @getDefaultUserGroup(scopeName)))?
-      return newText
-
-  flashRange: (range) ->
-    marker = @editor.markBufferRange(range)
-    @editor.decorateMarker(marker, {type: 'highlight', class: 'toggle-flash'})
-    setTimeout ->
-      marker.destroy()
-    , settings.get('flashDurationMilliSeconds')
-
-  isValidTarget: (where, range, point) ->
-    if where is 'here'
-      range.containsPoint(point)
-    else
-      range.end.isGreaterThanOrEqual(point)
-
-  toggleWord: (cursor, where) ->
-    pattern = /\b\w+\b/g
-    cursorPosition = cursor.getBufferPosition()
-    scanRange = @editor.bufferRangeForBufferRow(cursorPosition.row)
-    scopeNames = [@getScopeNameAtCursor(cursor), '*']
-
-    @editor.scanInBufferRange pattern, scanRange, ({range, replace, matchText, stop, match}) =>
-      return unless @isValidTarget(where, range, cursorPosition)
-      for scopeName in scopeNames when (newText = @getWord(matchText, scopeName))?
-        stop()
-        newRange = replace(newText)
-        newStart = newRange.start
-        @flashRange(newRange) if range.start.isGreaterThan(cursorPosition)
-        if (where in ['visit', 'here']) or newStart.isLessThan(cursorPosition)
-          cursor.setBufferPosition(newStart)
-        break
-
-  # options
-  # - where: ['here', 'there', 'visit']
-  toggle: (where) ->
-    @editor = atom.workspace.getActiveTextEditor()
-    @editor.transact =>
-      @toggleWord(cursor, where) for cursor in @editor.getCursors()
+  # Utils
+  # -------------------------
+  getScopeNameAtCursor: (cursor) ->
+    scopeNames = (g.scopeName for g in atom.grammars.getGrammars())
+    scopes = cursor.getScopeDescriptor().getScopesArray().reverse()
+    return scope for scope in scopes when scope in scopeNames
