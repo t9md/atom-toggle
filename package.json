@@ -1,7 +1,7 @@
 {
   "name": "toggle",
   "main": "./lib/main",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Toggle word at cursor",
   "activationCommands": {
     "atom-workspace": [
