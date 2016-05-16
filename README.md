@@ -1,4 +1,5 @@
-# Toggle
+# Toggle [![Build Status](https://travis-ci.org/t9md/atom-toggle.svg?branch=master)](https://travis-ci.org/t9md/atom-toggle)
+
 
 Toggle keyword
 
