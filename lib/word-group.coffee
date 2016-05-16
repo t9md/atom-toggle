@@ -47,13 +47,13 @@ wordGroupForWeb = [
   ['inside'    , 'outside']
   ['push'      , 'pull']
 ]
+
 wordGroup['text.html.basic']    = wordGroupForWeb
 wordGroup['text.html.gohtml']   = wordGroupForWeb
 wordGroup['text.html.jsp']      = wordGroupForWeb
 wordGroup['text.html.mustache'] = wordGroupForWeb
 wordGroup['text.html.erb']      = wordGroupForWeb
 wordGroup['text.html.ruby']     = wordGroupForWeb
-
 wordGroup['source.css']         = wordGroupForWeb
 wordGroup['source.css.less']    = wordGroupForWeb
 wordGroup['source.css.scss']    = wordGroupForWeb
