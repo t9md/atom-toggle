@@ -68,10 +68,9 @@ From command Palette, execute `Toggle: Open Config`.
 ### Flash color customization
 
 ```less
-atom-text-editor {
-  .toggle-flash .region {
-    background-color: @syntax-selection-flash-color;
-  }
+@keyframes toggle-flash {
+  from { background-color: @syntax-selection-flash-color; }
+  to { background-color: transparent; }
 }
 ```
 
