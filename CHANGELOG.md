@@ -1,3 +1,11 @@
+## 0.5.0:
+- Supported engine version is now atom-1.13 or later
+- Fix: Remove of use of `text-editor::shadow`.
+- Breaking, Improve:
+  - Tweak flash style: Make it subtle, and flash by CSS keyframe animation.
+  - Deprecate `flashDurationMilliSeconds` setting. It's now 1 sec static.
+- Internal: Refactoring code.
+
 ## 0.4.0:
 - Write spec
 - Bug fix: `defaultWordGroupExcludeScope` was not respected.

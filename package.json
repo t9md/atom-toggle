@@ -14,7 +14,7 @@
   "repository": "https://github.com/t9md/atom-toggle",
   "license": "MIT",
   "engines": {
-    "atom": ">=0.174.0 <2.0.0"
+    "atom": "^1.13.0"
   },
   "dependencies": {
     "fs-plus": "^2.8.1",

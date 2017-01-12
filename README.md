@@ -1,16 +1,15 @@
 # Toggle [![Build Status](https://travis-ci.org/t9md/atom-toggle.svg?branch=master)](https://travis-ci.org/t9md/atom-toggle)
 
-
 Toggle keyword
 
-![gif](https://raw.githubusercontent.com/t9md/t9md/98d528c75fdc11e98c79e52404d3a195d6dcb0ee/img/atom-toggle.gif)
+![gif](https://raw.githubusercontent.com/t9md/t9md/1b7e5e194459078e30a85443b283561a4ff8edbe/img/atom-toggle.gif)
 
 # Commands
 
-* `toggle:here`: toggle word under cursor.
-* `toggle:there`: toggle word on current line without changing cursor position.
-* `toggle:visit`: toggle word on current line with visiting toggled word.
-* `toggle:open-config`: open user's wordGroup configuration file.
+* `toggle:here`: Toggle word under cursor.
+* `toggle:there`: Toggle word on current line without moving cursor.
+* `toggle:visit`: Toggle word on current line and move to toggled word.
+* `toggle:open-config`: Open user's wordGroup configuration file.
 
 # Keymap
 
@@ -25,10 +24,10 @@ e.g.
   'ctrl--': 'toggle:there'
 ```
 
-* [vim-mode](https://atom.io/packages/vim-mode)?.
+* [vim-mode-plus](https://atom.io/packages/vim-mode-plus) user
 
 ```coffeescript
-'atom-text-editor.vim-mode.normal-mode':
+'atom-text-editor.vim-mode-plus.normal-mode':
   '-': 'toggle:there'
 ```
 
@@ -69,7 +68,7 @@ From command Palette, execute `Toggle: Open Config`.
 ### Flash color customization
 
 ```less
-atom-text-editor::shadow {
+atom-text-editor {
   .toggle-flash .region {
     background-color: @syntax-selection-flash-color;
   }
