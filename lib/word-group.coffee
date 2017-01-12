@@ -13,6 +13,7 @@ wordGroup =
     ['first' , 'last']
     ['enable', 'disable']
     ['enabled', 'disabled']
+    ['before', 'after']
   ]
   'source.coffee': [
     ['is'  , 'isnt']

@@ -3,6 +3,7 @@ fs = require 'fs-plus'
 CSON = null
 
 settings = require './settings'
+
 userWordGroupTemplate = """
   # Each word must match reglar expression '\w+'.
   # So follwoing settings is invalid.
@@ -32,123 +33,115 @@ userWordGroupTemplate = """
   # ]
 """
 
+readCSON = (filePath) ->
+  return {} unless fs.existsSync(filePath)
+
+  try
+    CSON ?= require 'season'
+    return CSON.readFileSync(filePath) or {}
+  catch error
+    atom.notifications.addError('[toggle] config file has error', detail: error.message)
+  {}
+
+getScopeNameForCursor = (cursor) ->
+  scopeNames = (grammar.scopeName for grammar in atom.grammars.getGrammars())
+  scopes = cursor.getScopeDescriptor().getScopesArray()
+  for scope in scopes by -1 when scope in scopeNames
+    return scope
+  null
+
+flashRange = (editor, range, options) ->
+  marker = editor.markBufferRange(range)
+  editor.decorateMarker(marker, type: 'highlight', class: options.class)
+  setTimeout ->
+    marker.destroy()
+  , options.timeout
+
 module.exports =
   config: settings.config
+  userWordGroupPath: null
 
   activate: (state) ->
+    deprecatedConfigParams = ['flashOnToggle', 'flashColor', 'flashDurationMilliSeconds']
+    settings.notifyAndDelete(deprecatedConfigParams...)
+
     @subscriptions = new CompositeDisposable
-    settings.notifyAndDelete('flashOnToggle', 'flashColor')
-    @subscribe atom.commands.add 'atom-workspace',
+    @subscriptions.add atom.commands.add 'atom-text-editor:not([mini])',
       'toggle:here': => @toggle('here')
       'toggle:visit': => @toggle('visit')
       'toggle:there': => @toggle('there')
+
+    @subscriptions.add atom.commands.add 'atom-workspace',
       'toggle:open-config': => @openUserConfig()
+
+    @subscriptions.add settings.observe 'configPath', (filePath) =>
+      @userWordGroupPath = fs.normalize(filePath)
 
   deactivate: ->
     @subscriptions.dispose()
     @subscriptions = null
 
-  subscribe: (arg) ->
-    @subscriptions.add(arg)
-
   getWord: (text, scopeName, {lookupDefaultWordGroup}) ->
-    lookupDefaultWordGroup ?= false
     findWord = (text, setOfWords) ->
       for words in setOfWords when (index = words.indexOf(text)) >= 0
         return words[(index + 1) % words.length]
 
-    if (newText = findWord(text, @getUserWordGroup(scopeName)))?
+    if (newText = findWord(text, @getUserWordGroupForScope(scopeName)))?
       return newText
 
-    return unless lookupDefaultWordGroup
+    return null unless lookupDefaultWordGroup
 
-    if (newText = findWord(text, @getDefaultWordGroup(scopeName)))?
+    @defaultWordGroup ?= require './word-group'
+    defaultWordGroup = @defaultWordGroup[scopeName] ? []
+    if (newText = findWord(text, defaultWordGroup))?
       return newText
 
   # Where: ['here', 'there', 'visit']
   toggle: (where) ->
     @editor = atom.workspace.getActiveTextEditor()
     @editor.transact =>
-      @toggleWord(cursor, where) for cursor in @editor.getCursors()
+      for cursor in @editor.getCursors()
+        @toggleWord(cursor, where)
 
   toggleWord: (cursor, where) ->
-    pattern = /\b\w+\b/g
     cursorPosition = cursor.getBufferPosition()
+    scopeNameForCursor = getScopeNameForCursor(cursor)
+    scopeNames = [scopeNameForCursor, '*']
+    lookupDefaultWordGroup = settings.get('useDefaultWordGroup') and
+      (scopeNameForCursor not in settings.get('defaultWordGroupExcludeScope'))
+
+    pattern = /\b\w+\b/g
     scanRange = @editor.bufferRangeForBufferRow(cursorPosition.row)
-    scopeNameAtCursor = @getScopeNameAtCursor(cursor)
-    scopeNames = [scopeNameAtCursor, '*']
-    lookupDefaultWordGroup = scopeNameAtCursor not in settings.get('defaultWordGroupExcludeScope')
+    @editor.scanInBufferRange pattern, scanRange, ({range, replace, matchText, stop}) =>
+      if where is 'here'
+        return unless range.containsPoint(cursorPosition)
+      else
+        return unless range.end.isGreaterThanOrEqual(cursorPosition)
 
-    @editor.scanInBufferRange pattern, scanRange, ({range, replace, matchText, stop, match}) =>
-      return unless @isValidTarget(where, range, cursorPosition)
-      for scopeName in scopeNames when (newText = @getWord(matchText, scopeName, {lookupDefaultWordGroup}))?
-        stop()
-        newRange = replace(newText)
-        newStart = newRange.start
-        @flashRange(newRange) if range.start.isGreaterThan(cursorPosition)
-        if (where in ['visit', 'here']) or newStart.isLessThan(cursorPosition)
-          cursor.setBufferPosition(newStart)
-        break
-
-  isValidTarget: (where, range, point) ->
-    if where is 'here'
-      range.containsPoint(point)
-    else
-      range.end.isGreaterThanOrEqual(point)
-
-  flashRange: (range) ->
-    marker = @editor.markBufferRange(range)
-    @editor.decorateMarker(marker, {type: 'highlight', class: 'toggle-flash'})
-    timeout = settings.get('flashDurationMilliSeconds')
-    setTimeout ->
-      marker.destroy()
-    , timeout
+      for scopeName in scopeNames
+        newText = @getWord(matchText, scopeName, {lookupDefaultWordGroup})
+        if newText?
+          stop()
+          flashRange(@editor, replace(newText), class: 'toggle-flash', timeout: 1000)
+          if (where in ['visit', 'here']) or range.start.isLessThan(cursorPosition)
+            cursor.setBufferPosition(range.start)
+          break
 
   # Word group
   # -------------------------
-  getUserWordGroupPath: ->
-    fs.normalize(settings.get('configPath'))
-
   openUserConfig: ->
-    filePath = @getUserWordGroupPath()
-    disposable = null
-    atom.workspace.open(filePath).then (editor) =>
-      unless fs.existsSync(filePath)
-        # First time!
+    isInitialOpen = not fs.existsSync(@userWordGroupPath)
+    atom.workspace.open(@userWordGroupPath, searchAllPanes: true).then (editor) =>
+      if isInitialOpen
         editor.setText(userWordGroupTemplate)
         editor.save()
 
-      disposable = editor.onDidSave =>
-        @userWordGroup = @readUserWordGroup()
-      editor.onDidDestroy ->
-        disposable.dispose()
-        disposable = null
+      disposable = editor.onDidSave(@loadUserWordGroup.bind(this))
+      editor.onDidDestroy -> disposable.dispose()
 
-  getUserWordGroup: (scopeName) ->
-    @userWordGroup ?= @readUserWordGroup()
+  getUserWordGroupForScope: (scopeName) ->
+    @loadUserWordGroup() unless @userWordGroup?
     @userWordGroup[scopeName] ? []
 
-  getDefaultWordGroup: (scopeName) ->
-    if settings.get('useDefaultWordGroup')
-      @defaultWordGroup ?= require './word-group'
-      @defaultWordGroup[scopeName] ? []
-    else
-      []
-
-  readUserWordGroup: ->
-    filePath = @getUserWordGroupPath()
-    return {} unless fs.existsSync(filePath)
-
-    try
-      CSON ?= require 'season'
-      return CSON.readFileSync(filePath) or {}
-    catch error
-      atom.notifications.addError('[toggle] config file has error', detail: error.message)
-    {}
-
-  # Utils
-  # -------------------------
-  getScopeNameAtCursor: (cursor) ->
-    scopeNames = (g.scopeName for g in atom.grammars.getGrammars())
-    scopes = cursor.getScopeDescriptor().getScopesArray().reverse()
-    return scope for scope in scopes when scope in scopeNames
+  loadUserWordGroup: ->
+    @userWordGroup = readCSON(@userWordGroupPath)

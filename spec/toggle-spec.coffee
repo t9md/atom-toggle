@@ -1,4 +1,3 @@
-
 path = require 'path'
 fs = require 'fs-plus'
 temp = require 'temp'
@@ -62,7 +61,7 @@ describe "toggle", ->
     beforeEach ->
       editor.setText("['yes', 'no']\nup, down\n")
 
-    it "toggle forwarding word and move cursor to start of toggled", ->
+    it "toggle forwarding word and move cursor to start of toggled word", ->
       editor.setCursorBufferPosition([0, 0])
       dispatchCommand('toggle:visit')
       ensure(cursor: [0, 2], text: "['no', 'no']\nup, down\n")
@@ -76,10 +75,11 @@ describe "toggle", ->
       dispatchCommand('toggle:there')
       ensure(cursor: [0, 0], text: "['no', 'no']\nup, down\n")
 
-    it "but when word start postion is less than cursor it move start of word after toggle", ->
-      editor.setCursorBufferPosition([1, 7])
-      dispatchCommand('toggle:there')
-      ensure(cursor: [1, 4], text: "['yes', 'no']\nup, up\n")
+    describe "when toggled word's start is less than cursor position", ->
+      it "move cursor to start of toggled word", ->
+        editor.setCursorBufferPosition([1, 7])
+        dispatchCommand('toggle:there')
+        ensure(cursor: [1, 4], text: "['yes', 'no']\nup, up\n")
 
   describe "[config] useDefaultWordGroup", ->
     beforeEach ->

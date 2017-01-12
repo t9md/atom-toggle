@@ -1,7 +1,18 @@
 @import "syntax-variables";
 
-atom-text-editor.editor {
-  .toggle-flash .region {
-    background-color: @syntax-selection-flash-color;
-  }
+@flash-background-color: contrast(
+  @syntax-background-color,
+  darken(@syntax-selection-color, 3%),
+  lighten(@syntax-selection-color, 3%)
+);
+
+@keyframes toggle-flash {
+  from { background-color: @flash-background-color; }
+  to { background-color: transparent; }
+}
+
+atom-text-editor .toggle-flash .region {
+  animation-name: toggle-flash;
+  animation-iteration-count: 1;
+  animation-duration: 1s;
 }
