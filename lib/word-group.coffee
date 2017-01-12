@@ -1,5 +1,5 @@
 
-wordGroups =
+wordGroup =
   '*': [
     ['yes'   , 'no']
     ['up'    , 'down']
@@ -10,29 +10,22 @@ wordGroups =
     ['and'   , 'or']
     ['on'    , 'off']
     ['in'    , 'out']
-    ['+'     , '-']
-    ['>'     , '<']
-    ['>='    , '<=']
-    ['&&'    , '||']
-    ['&'     , '|']
     ['first' , 'last']
-    ['=='    , '!=']
+    ['enable', 'disable']
+    ['enabled', 'disabled']
   ]
   'source.coffee': [
-    ['this', '@']
     ['is'  , 'isnt']
     ['if'  , 'unless']
   ]
 
 # Refer: https://github.com/zef/vim-cycle/blob/master/plugin/cycle.vim
-webDevWordGroups = [
-  ['<']
-  ['>']
+wordGroupForWeb = [
   ['div'       , 'p'          , 'span']
   ['max'       , 'min']
   ['ul'        , 'ol']
   ['class'     , 'id']
-  ['px'        , '%'          , 'em']
+  ['px'        , 'em']
   ['left'      , 'right']
   ['top'       , 'bottom']
   ['margin'    , 'padding']
@@ -54,15 +47,15 @@ webDevWordGroups = [
   ['inside'    , 'outside']
   ['push'      , 'pull']
 ]
-wordGroups['text.html.basic']    = webDevWordGroups
-wordGroups['text.html.gohtml']   = webDevWordGroups
-wordGroups['text.html.jsp']      = webDevWordGroups
-wordGroups['text.html.mustache'] = webDevWordGroups
-wordGroups['text.html.erb']      = webDevWordGroups
-wordGroups['text.html.ruby']     = webDevWordGroups
 
-wordGroups['source.css']         = webDevWordGroups
-wordGroups['source.css.less']    = webDevWordGroups
-wordGroups['source.css.scss']    = webDevWordGroups
+wordGroup['text.html.basic']    = wordGroupForWeb
+wordGroup['text.html.gohtml']   = wordGroupForWeb
+wordGroup['text.html.jsp']      = wordGroupForWeb
+wordGroup['text.html.mustache'] = wordGroupForWeb
+wordGroup['text.html.erb']      = wordGroupForWeb
+wordGroup['text.html.ruby']     = wordGroupForWeb
+wordGroup['source.css']         = wordGroupForWeb
+wordGroup['source.css.less']    = wordGroupForWeb
+wordGroup['source.css.scss']    = wordGroupForWeb
 
-module.exports = wordGroups
+module.exports = wordGroup

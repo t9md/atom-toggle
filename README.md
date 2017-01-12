@@ -1,23 +1,9 @@
-# Toggle
+# Toggle [![Build Status](https://travis-ci.org/t9md/atom-toggle.svg?branch=master)](https://travis-ci.org/t9md/atom-toggle)
 
-Toggle word
- - at cursor
- - on current line even without changing cursor position.
 
-![gif](https://raw.githubusercontent.com/t9md/t9md/1c92b38b8e1e8c2fd592f3befcd673f896246271/img/atom-toggle.gif)
+Toggle keyword
 
-# Features
-
-* Toggle word under cursor(`toggle:here`) to next word in wordGroup.
-* Toggle word on current line with(`toggle:visit`) or without(`toggle:there`) changing cursor position.
-* User configurable wordGroup.
-* Use cursor position's scope(usefull in like `coffeescript` in `gfm`).
-* Scope specific and default(`*`) wordGroup.
-* Open user configration(`toggle:open-config`), auto reload on save.
-* Work with multiple cursor.
-* You can disable default wordGroup completely.
-* You can disable default wordGroup for specific scope.
-* Flash toggled word. Customizable color, duration and disable it.
+![gif](https://raw.githubusercontent.com/t9md/t9md/98d528c75fdc11e98c79e52404d3a195d6dcb0ee/img/atom-toggle.gif)
 
 # Commands
 
@@ -46,7 +32,17 @@ e.g.
   '-': 'toggle:there'
 ```
 
-# Configuration
+# Limitation
+
+When this package search candidate word to be toggled from current line, it scan word with regular expression `/\b\w+\b/`.  
+So you can only toggle word matches `\w+` or `[A-Za-z0-9_]+`.  
+This mean you cannot set special character as toggle words e.g. `<`, `<=`.
+
+# Customization
+
+### Add custom words
+
+From command Palette, execute `Toggle: Open Config`.
 
 ```coffeescript
 # '*' is wildcard scope, which is always searched as last resort.
@@ -65,20 +61,22 @@ e.g.
   ['bar'   , 'bar']
 ],
 'source.coffee': [
-  ['this', '@']
   ['is'  , 'isnt']
   ['if'  , 'unless']
 ]
+```
+
+### Flash color customization
+
+```less
+atom-text-editor::shadow {
+  .toggle-flash .region {
+    background-color: @syntax-selection-flash-color;
+  }
+}
 ```
 
 # Similar package for other text editors.
 
 * [zef/vim-cycle](https://github.com/zef/vim-cycle)
 * [AndrewRadev/switch.vim](https://github.com/AndrewRadev/switch.vim)
-
-# TODO
-* [x] Support language specific keyword handling
-* [x] Disable default words group by configuration.
-* [x] Toggle without changing cursor position.
-* [x] Highlight toggled word?
-* [ ] Improve default words group.

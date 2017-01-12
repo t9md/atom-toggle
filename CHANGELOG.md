@@ -1,3 +1,21 @@
+## 0.4.0:
+- Write spec
+- Bug fix: `defaultWordGroupExcludeScope` was not respected.
+
+## 0.3.2:
+- Update default wordGroup.
+
+## 0.3.1:
+- Add notification for removal of `flashColor` setting.
+- Update gif in readme since it is based on old behavior when special char(`@`) is supported.
+
+## 0.3.0
+- Remove `flashOnToggle` setting.
+- Remove `flashColor` setting.
+- Refactoring: rewrite all part of codes.
+- Improve accuracy for picking word under cursor.
+- Remove support of word including special char. Now word must match `\w+`.
+
 ## 0.2.3 - Improve
 - README.md TODO update
 - Update readme to follow vim-mode's command-mode to normal-mode
