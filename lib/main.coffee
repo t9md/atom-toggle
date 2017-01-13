@@ -92,6 +92,7 @@ module.exports =
 
     for wordGroup in wordGroups when (index = wordGroup.indexOf(text)) >= 0
       return wordGroup[(index + 1) % wordGroup.length]
+    return null
 
   # Where: ['here', 'there', 'visit']
   toggle: (where) ->
