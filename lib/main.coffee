@@ -60,10 +60,13 @@ flashRange = (editor, range, options) ->
 module.exports =
   config: settings.config
   userWordGroupPath: null
+  defaultWordGroup: null
 
   activate: (state) ->
     deprecatedConfigParams = ['flashOnToggle', 'flashColor', 'flashDurationMilliSeconds']
     settings.notifyAndDelete(deprecatedConfigParams...)
+
+    @defaultWordGroup = require './word-group'
 
     @subscriptions = new CompositeDisposable
     @subscriptions.add atom.commands.add 'atom-text-editor:not([mini])',
@@ -79,22 +82,16 @@ module.exports =
 
   deactivate: ->
     @subscriptions.dispose()
-    @subscriptions = null
+    [@subscriptions, @defaultWordGroup] = []
 
   getWord: (text, scopeName, {lookupDefaultWordGroup}) ->
-    findWord = (text, setOfWords) ->
-      for words in setOfWords when (index = words.indexOf(text)) >= 0
-        return words[(index + 1) % words.length]
+    wordGroups = []
+    wordGroups.push(@getUserWordGroupForScope(scopeName)...)
+    if lookupDefaultWordGroup and (scopeName of @defaultWordGroup)
+      wordGroups.push(@defaultWordGroup[scopeName]...)
 
-    if (newText = findWord(text, @getUserWordGroupForScope(scopeName)))?
-      return newText
-
-    return null unless lookupDefaultWordGroup
-
-    @defaultWordGroup ?= require './word-group'
-    defaultWordGroup = @defaultWordGroup[scopeName] ? []
-    if (newText = findWord(text, defaultWordGroup))?
-      return newText
+    for wordGroup in wordGroups when (index = wordGroup.indexOf(text)) >= 0
+      return wordGroup[(index + 1) % wordGroup.length]
 
   # Where: ['here', 'there', 'visit']
   toggle: (where) ->
