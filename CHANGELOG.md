@@ -1,3 +1,6 @@
+## 0.5.1:
+- Refactoring
+
 ## 0.5.0:
 - Supported engine version is now atom-1.13 or later
 - Fix: Remove of use of `text-editor::shadow`.
