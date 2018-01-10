@@ -25,6 +25,8 @@
     "watch": "fswatch -0 spec lib | xargs -0 -n1 -I{} apm test"
   },
   "devDependencies": {
+    "dedent": "^0.7.0",
+    "prettier": "^1.9.2",
     "temp": "^0.8.3"
   }
 }
