@@ -1,3 +1,6 @@
+## 0.6.0:
+- Convert to JavaScript from CoffeeScript
+
 ## 0.5.1:
 - Refactoring
 
