@@ -1,3 +1,6 @@
+## 0.6.2:
+- Critical bug fix: user configuration not respected, introduced in v0.6.0 sorry!
+
 ## 0.6.1:
 - Minor fix
 
