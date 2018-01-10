@@ -1,3 +1,6 @@
+## 0.6.1:
+- Minor fix
+
 ## 0.6.0:
 - Convert to JavaScript from CoffeeScript
 
