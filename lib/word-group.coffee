@@ -15,7 +15,6 @@ wordGroup =
     ['before', 'after']
   ]
   'source.coffee': [
-    ['is'  , 'isnt']
     ['if'  , 'unless']
   ]
 
